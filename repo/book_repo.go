@@ -53,10 +53,9 @@ func (r *MongoBookRepo) CreateManyBooks(books []interface{}) error {
 }
 
 func (r *MongoBookRepo) UpdateBook(id primitive.ObjectID, book *models.Book) error {
-
 	result, err := r.collection.UpdateByID(context.Background(), id, bson.D{{"$set", book}})
 	if err != nil {
-		return errors.New("MONGO: Failed to update the book")
+		return errors.Join(err, errors.New("MONGO: Failed to update the book"))
 	}
 	if result.MatchedCount == 0 {
 		return errors.New("MONGO: ID doesn't exists")
@@ -114,20 +113,26 @@ func (r *MongoBookRepo) UpsertBook(book *models.Book) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	filter := models.Book{
-		Author: book.Author,
-		Title:  book.Title,
+	authorEmails := []string{}
+	for _, author := range book.Authors {
+		authorEmails = append(authorEmails, author.Email)
 	}
+	//Select a book with given title and authors, if matches then updates details else create new book
+	// Use Case: Want to edit details of book  and its authors based on title and author details,if not found then create new book
+	emailFilter := bson.D{{"email", bson.D{{"$all", authorEmails}}}}
+
+	filter := bson.D{{"title", book.Title},
+		{"authors", bson.D{{"$elemMatch", emailFilter}}}}
 
 	update := bson.D{{"$set", book}}
 
 	opts := options.Update().SetUpsert(true)
 
 	_, err := r.collection.UpdateOne(ctx, filter, update, opts)
-
 	if err != nil {
-		return errors.New("MONGO: Failed to upsert")
+		return errors.Join(err, errors.New("MONGO: Failed to upsert"))
 	}
+
 	return nil
 }
 

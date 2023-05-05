@@ -6,6 +6,12 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type Author struct {
+	Name  string `json:"name" validate:"required"`
+	Age   int    `json:"age" validate:"required"`
+	Email string `json:"email" validate:"required,email"`
+}
+
 var validate = validator.New()
 
 func Parse(ctx *gin.Context, request interface{}) error {

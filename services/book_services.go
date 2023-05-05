@@ -10,19 +10,28 @@ import (
 
 func CreateUpdateBookService(request *requests.CreateUpdateBookRequest) error {
 	var r repo.BookRepo = repo.NewMongoBookRepo()
+	Authors := []models.Author{}
+	for _, author := range request.Authors {
+		Authors = append(Authors, models.Author{Name: author.Name, Email: author.Email, Age: author.Age})
+	}
 	return r.UpsertBook(
 		&models.Book{
 			Title:     request.Title,
-			Author:    request.Author,
+			Authors:   Authors,
 			PageCount: request.PageCount,
 		})
 }
 
 func CreateBookService(request *requests.CreateRequest) error {
 	var r repo.BookRepo = repo.NewMongoBookRepo()
+
+	Authors := []models.Author{}
+	for _, author := range request.Authors {
+		Authors = append(Authors, models.Author{Name: author.Name, Email: author.Email, Age: author.Age})
+	}
 	return r.CreateBook(&models.Book{
 		Title:     request.Title,
-		Author:    request.Author,
+		Authors:   Authors,
 		PageCount: request.PageCount,
 	})
 }
@@ -33,9 +42,13 @@ func CreateManyBookService(request *[]requests.CreateRequest) error {
 	var books []interface{}
 
 	for _, eachRequest := range *request {
+		Authors := []models.Author{}
+		for _, author := range eachRequest.Authors {
+			Authors = append(Authors, models.Author{Name: author.Name, Email: author.Email, Age: author.Age})
+		}
 		books = append(books, models.Book{
 			Title:     eachRequest.Title,
-			Author:    eachRequest.Author,
+			Authors:   Authors,
 			PageCount: eachRequest.PageCount,
 		})
 	}
@@ -50,7 +63,13 @@ func UpdateBookService(request *requests.UpdateRequest, id string) error {
 	if err != nil {
 		return errors.New("ERROR: Invalid Object ID")
 	}
-	return r.UpdateBook(objID, &models.Book{Title: request.Title, Author: request.Author, PageCount: request.PageCount})
+
+	newAuthors := []models.Author{}
+	for _, author := range request.Authors {
+		newAuthors = append(newAuthors, models.Author{Name: author.Name, Email: author.Email, Age: author.Age})
+	}
+
+	return r.UpdateBook(objID, &models.Book{Title: request.Title, Authors: newAuthors, PageCount: request.PageCount})
 }
 
 func GetBookByIdService(id string) (*models.Book, error) {
